@@ -14,7 +14,7 @@ More important, note also that this project is a place holder for a safer and mo
 2. open the browser console.
 3. connect to local mongod
     db=new postmongo()
-4. list contents of one of its collections with db.<some collection>.find()
+4. list contents of one of its collections with db.some_collection.find()
 5. now check the connection details for a remote library, kept in the variable "parm"
 6. connect to that external mongodb with b = new postmongo(parm)
-7. list entries in the collection patients with b.patient.find()
+7. list entries in the collection patients with b.patients.find('',function(x){lala=JSON.parse(x);console.log('... '+lala.length+' patient entries retrieved into variable lala')});'processing ...'
