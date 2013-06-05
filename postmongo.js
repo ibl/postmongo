@@ -106,9 +106,9 @@ postmongo.col={
 	count:function(q_cb){
 		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.find({}).toArray(function(err,docs){res.end(JSON.stringify(docs.length));client.close()})});',q_cb);
 	},
-	//save:function(docs,cbk){
-	//	postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.insert('+JSON.stringify(//docs)+',{safe: true}).toArray(function(err,docs){res.end(JSON.stringify(docs));client.close()})});',q_cb);
-	//}
+	save:function(docs,cbk){
+		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.insert('+JSON.stringify(docs)+',{safe: true},function(err,docs){res.end(JSON.stringify(docs));client.close()})});',cbk);
+	}
 }
 
 // 1. by passing parameter values with the URL
