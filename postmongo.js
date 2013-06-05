@@ -44,9 +44,14 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 						var cname=ci.name.match(/([^\.]+)\.(.*)/);
 						db.db_name=cname[1]; // should be the same for all
 						db.col_names.push(cname[2]);
-						db[cname[2]]={col_name:cname[2]}; 
+						db[cname[2]]={col_name:cname[2]};
+						// COLLECTION METHODS HERE //
 						// move here all the methods associated with collections, such as find
-						db[cname[2]].find=postmongo.find;
+						Object.getOwnPropertyNames(postmongo.col).forEach(function(m){ // for each method in postmongo.col
+							db[cname[2]][m]=postmongo.col[m];
+						});
+						//db[cname[2]].find=postmongo.col.find;
+						//db[cname[2]].count=postmongo.col.count;
 						console.log(cname[2]); // list collections
 					})
 
@@ -78,6 +83,7 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 }
 
 postmongo.exe=function(cmd,cbb,dt,db){ // command to be executed, callback on dt result, data to be used (dt), and target database 
+	if(!cbb){cbb=function(x){console.log(x)}};
 	if(!db){db = postmongo.dbi} // default is current
 	if(typeof(db)=='string'){db=postmongo.dbs[db]};
 	if(!!dt){db.db_parm.dt=dt}; // if dt is provided, use it
@@ -88,12 +94,22 @@ postmongo.exe=function(cmd,cbb,dt,db){ // command to be executed, callback on dt
 }
 
 
-// Methods assigned to each collections
-postmongo.find=function(q,q_cb){
-	if(!q_cb){var q_cb=function(x){console.log(x)}};
-	postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.find('+q+').toArray(function(err,docs){res.end(JSON.stringify(docs));client.close()})});',q_cb);
-}
+// Methods assigned to each collection
 
+postmongo.col={
+	find:function(q,q_cb){
+		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.find('+q+').toArray(function(err,docs){res.end(JSON.stringify(docs));client.close()})});',q_cb);
+	},
+	findCount:function(q,q_cb){ // to mimick find().count() 
+		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.find('+q+').toArray(function(err,docs){res.end(JSON.stringify(docs.length));client.close()})});',q_cb);
+	},
+	count:function(q_cb){
+		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.find({}).toArray(function(err,docs){res.end(JSON.stringify(docs.length));client.close()})});',q_cb);
+	},
+	//save:function(docs,cbk){
+	//	postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.insert('+JSON.stringify(//docs)+',{safe: true}).toArray(function(err,docs){res.end(JSON.stringify(docs));client.close()})});',q_cb);
+	//}
+}
 
 // 1. by passing parameter values with the URL
 // x=jQuery.post('http://localhost:1337/?u=workshop&p=informatics&url=dharma.mongohq.com&port=10014&db=tcgaBoard&exe=console.log(dt)',JSON.stringify({x:[1,2,3]}),function(r){console.log(r)})
