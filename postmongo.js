@@ -36,8 +36,10 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 		cb0=function(r){ // default callback is to register collections as properties of this db
 			//console.log(r);
 			var db = postmongo.dbs[this.url]; // remember each db connected is tracked by the mothership
-			db.showCollections()
+			db.showCollections(undefined,db);
+			//db=postmongo.dbs[postmongo.dbi];
 		}
+		//this=postmongo.dbs[postmongo.dbi];
 	}
 	if(!this.db_parm.dt.exe){this.db_parm.dt.exe='res.end(JSON.stringify(dt));client.close()'}
 	this.res = jQuery.post(this.connector,JSON.stringify(this.db_parm.dt),cb0);
@@ -46,11 +48,12 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 		if(!dt){dt={}};
 		return postmongo.exe(cmd,exe_cb,dt,this.connector)
 	};
-	this.showCollections=function(cbk){ // mongo: "show collections", callback function is teh sole input
+	this.showCollections=function(cbk,db){ // mongo: "show collections", callback function is teh sole input
 		this.exe('client.collectionNames(function(error,names){dt.names=names;res.end(JSON.stringify(dt.names));client.close();});',function(c){
 					if(!cbk){cbk=function(x){console.log(x.map(function(xi){return xi.name}))}};
 					c = JSON.parse(c);
-					var db = postmongo.dbs[this.url]; // remember each db connected is tracked by the mothership
+					//db = postmongo.dbs[this.url]; // remember each db connected is tracked by the mothership
+					postmongo.dbs[this.url]=db; // remember each db connected is tracked by the mothership
 					db.col_names=[];
 					//console.log('Collections found:');
 					c.forEach(function(ci){
@@ -69,6 +72,7 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 					})
 					cbk(c);
 				});
+	//this = postmongo.dbs[postmongo.dbi];
 	};
 	this.createCollection=function(col_name,cbk){
 		postmongo.exe('client.createCollection("'+col_name+'",function(err){res.end(JSON.stringify(err));client.close()});',cbk);
