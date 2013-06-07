@@ -32,6 +32,7 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 
 	// Connect
 	//if(!cb){cb=function(r){console.log(r)}}
+	
 	if(!cb0){
 		cb0=function(r){ // default callback is to register collections as properties of this db
 			//console.log(r);
@@ -49,11 +50,17 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 		return postmongo.exe(cmd,exe_cb,dt,this.connector)
 	};
 	this.showCollections=function(cbk,db){ // mongo: "show collections", callback function is teh sole input
+		if(!db){db=this};
 		this.exe('client.collectionNames(function(error,names){dt.names=names;res.end(JSON.stringify(dt.names));client.close();});',function(c){
 					if(!cbk){cbk=function(x){console.log(x.map(function(xi){return xi.name}))}};
 					c = JSON.parse(c);
 					//db = postmongo.dbs[this.url]; // remember each db connected is tracked by the mothership
 					postmongo.dbs[this.url]=db; // remember each db connected is tracked by the mothership
+					if(!!db.col_names){// if they exist, clean them from database methods
+						db.col_names.forEach(function(n){
+							delete db[n];
+						})
+					}
 					db.col_names=[];
 					//console.log('Collections found:');
 					c.forEach(function(ci){
@@ -66,6 +73,7 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 						Object.getOwnPropertyNames(postmongo.col).forEach(function(m){ // for each method in postmongo.col
 							db[cname[2]][m]=postmongo.col[m];
 						});
+						db[cname[2]].db=db; // this will come handy when collections are dropped
 						//db[cname[2]].find=postmongo.col.find;
 						//db[cname[2]].count=postmongo.col.count;
 						//console.log(cname[2]); // list collections
@@ -75,7 +83,10 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 	//this = postmongo.dbs[postmongo.dbi];
 	};
 	this.createCollection=function(col_name,cbk){
-		postmongo.exe('client.createCollection("'+col_name+'",function(err){res.end(JSON.stringify(err));client.close()});',cbk);
+		var db = this;
+		postmongo.exe('client.createCollection("'+col_name+'",function(err){res.end(JSON.stringify(err));client.close()});',function(x){
+			db.showCollections(cbk);
+		});
 	};
 	this.colFind=function(col,q,q_cb){  // equivalent to mongo's db.col.find(q)
 			// code missing here to make sure col collection exists and create otherwise
@@ -115,10 +126,13 @@ postmongo.col={
 		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.find({}).toArray(function(err,docs){res.end(JSON.stringify(docs.length));client.close()})});',q_cb);
 	},
 	save:function(docs,cbk){
-		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.insert('+JSON.stringify(docs)+',{safe: true},function(err,docs){res.end(JSON.stringify(docs));client.close()})});',cbk);
+		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.insert('+JSON.stringify(docs)+',{safe: true},function(err,docs){res.end(JSON.stringify(docs.map(function(di){return di._id})));client.close()})});',cbk);
 	},
 	drop:function(cbk){
-		postmongo.exe('client.dropCollection("'+this.col_name+'",function(err){res.end(JSON.stringify(err));client.close()});',cbk);
+		var db = this.db;
+		postmongo.exe('client.dropCollection("'+this.col_name+'",function(err){res.end(JSON.stringify(err));client.close()});',function(x){
+			db.showCollections(cbk);
+		});
 	}
 	
 }
