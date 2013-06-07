@@ -31,8 +31,12 @@ http.createServer(function (req, res) {
             var requrl=req.url.split('?');
             var db_parm={};
             requrl[1].split('&').forEach(function(p){var pp=p.split('=');db_parm[pp[0]]=pp[1]});
-            req.on('data',function(x){ // x is the data passed by the post call
-                var dt=JSON.parse(x);
+            var xx="";
+            req.on('data',function(x){
+                xx+=x; // accumulate the data here
+            });
+            req.on('end',function(){ // when all teh data is posted
+                var dt=JSON.parse(xx);
                 if(!!dt.db_parm){ // import parameters from data, if they exist
                     for(var pr in dt.db_parm){
                         if(!db_parm[pr]){db_parm[pr]=dt.db_parm[pr]}
