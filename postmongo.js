@@ -36,10 +36,23 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 		cb0=function(r){ // default callback is to register collections as properties of this db
 			//console.log(r);
 			var db = postmongo.dbs[this.url]; // remember each db connected is tracked by the mothership
-			db.showCollections(function(c){
+			db.showCollections()
+		}
+	}
+	if(!this.db_parm.dt.exe){this.db_parm.dt.exe='res.end(JSON.stringify(dt));client.close()'}
+	this.res = jQuery.post(this.connector,JSON.stringify(this.db_parm.dt),cb0);
+	// MONGO client commands
+	this.exe=function(cmd,exe_cb,dt){
+		if(!dt){dt={}};
+		return postmongo.exe(cmd,exe_cb,dt,this.connector)
+	};
+	this.showCollections=function(cbk){ // mongo: "show collections", callback function is teh sole input
+		this.exe('client.collectionNames(function(error,names){dt.names=names;res.end(JSON.stringify(dt.names));client.close();});',function(c){
+					if(!cbk){cbk=function(x){console.log(x.map(function(xi){return xi.name}))}};
 					c = JSON.parse(c);
+					var db = postmongo.dbs[this.url]; // remember each db connected is tracked by the mothership
 					db.col_names=[];
-					console.log('Collections found:');
+					//console.log('Collections found:');
 					c.forEach(function(ci){
 						var cname=ci.name.match(/([^\.]+)\.(.*)/);
 						db.db_name=cname[1]; // should be the same for all
@@ -52,23 +65,13 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 						});
 						//db[cname[2]].find=postmongo.col.find;
 						//db[cname[2]].count=postmongo.col.count;
-						console.log(cname[2]); // list collections
+						//console.log(cname[2]); // list collections
 					})
-
-				})
-		}
-	}
-	if(!this.db_parm.dt.exe){this.db_parm.dt.exe='res.end(JSON.stringify(dt));client.close()'}
-	this.res = jQuery.post(this.connector,JSON.stringify(this.db_parm.dt),cb0);
-	// MONGO client commands
-	this.exe=function(cmd,exe_cb,dt){
-		if(!exe_cb){exe_cb=function(x){console.log(x)}};
-		if(!dt){dt={}};
-		return postmongo.exe(cmd,exe_cb,dt,this.connector)
+					cbk(c);
+				});
 	};
-	this.showCollections=function(cb1){ // mongo: "show collections", callback function is teh sole input
-		if(!cb1){cb1=function(x){console.log(JSON.parse(x))}};
-		this.exe('client.collectionNames(function(error,names){dt.names=names;res.end(JSON.stringify(dt.names));client.close();});',cb1);
+	this.createCollection=function(col_name,cbk){
+		postmongo.exe('client.createCollection("'+col_name+'",function(err){res.end(JSON.stringify(err));client.close()});',cbk);
 	};
 	this.colFind=function(col,q,q_cb){  // equivalent to mongo's db.col.find(q)
 			// code missing here to make sure col collection exists and create otherwise
@@ -82,16 +85,17 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 	postmongo.dbi=this.connector; // keep track of current db
 }
 
-postmongo.exe=function(cmd,cbb,dt,db){ // command to be executed, callback on dt result, data to be used (dt), and target database 
-	if(!cbb){cbb=function(x){console.log(x)}};
+postmongo.exe=function(cmd,cbk,dt,db){ // command to be executed, callback on dt result, data to be used (dt), and target database 
+	if(!cbk){cbk=function(x){console.log(JSON.parse(x))}};
 	if(!db){db = postmongo.dbi} // default is current
 	if(typeof(db)=='string'){db=postmongo.dbs[db]};
 	if(!!dt){db.db_parm.dt=dt}; // if dt is provided, use it
 	var db_parm = db.db_parm;
 	db_parm.dt.exe=cmd;
 	// ready for action
-	return new postmongo(db_parm,cbb);
+	return new postmongo(db_parm,cbk);
 }
+
 
 
 // Methods assigned to each collection
@@ -108,8 +112,15 @@ postmongo.col={
 	},
 	save:function(docs,cbk){
 		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.insert('+JSON.stringify(docs)+',{safe: true},function(err,docs){res.end(JSON.stringify(docs));client.close()})});',cbk);
+	},
+	drop:function(cbk){
+		postmongo.exe('client.dropCollection("'+this.col_name+'",function(err){res.end(JSON.stringify(err));client.close()});',cbk);
 	}
+	
 }
+
+
+// Utils
 
 // 1. by passing parameter values with the URL
 // x=jQuery.post('http://localhost:1337/?u=workshop&p=informatics&url=dharma.mongohq.com&port=10014&db=tcgaBoard&exe=console.log(dt)',JSON.stringify({x:[1,2,3]}),function(r){console.log(r)})
