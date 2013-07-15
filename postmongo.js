@@ -20,6 +20,17 @@ postmongo=function(db_parm,cb0,err){ // object with connection parameters, see c
 	this.db_parm.url = this.db_parm.url || 'localhost'; // mongod address
 	this.db_parm.port = this.db_parm.port || '27017'; // default mongod port
 	this.db_parm.db = this.db_parm.db || 'test';  // default mongodb database
+	
+	// check for parms in db, which can be used to transmit url and port
+	if(!!this.db_parm.db.match(/[\/\:]/g)){
+		if(this.db_parm.db.match(/[\/\:]/g).length==2){
+			this.db_parm.url=this.db_parm.db.match(/[^\:]+\:/g)[0].slice(0,-1);
+			this.db_parm.port=this.db_parm.db.match(/\:[\d]+\//g)[0].slice(1,-1);
+			this.db_parm.db=this.db_parm.db.match(/\/[^\/]+/g)[0].slice(1);
+		}
+	}
+
+
 	// notify no authentication
 	//if(!this.db_parm.u){console.log('no username provided')}
 	//if(!this.db_parm.p){console.log('no password provided')}
