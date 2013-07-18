@@ -128,9 +128,11 @@ postmongo.exe=function(cmd,cbk,dt,db){ // command to be executed, callback on dt
 
 postmongo.col={
 	find:function(q,q_cb){
+		if(typeof(q)!='string'){q=JSON.stringify(q)};
 		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.find('+q+').toArray(function(err,docs){res.end(JSON.stringify(docs));client.close()})});',q_cb);
 	},
 	findCount:function(q,q_cb){ // to mimick find().count() 
+		if(typeof(q)!='string'){q=JSON.stringify(q)};
 		postmongo.exe('client.collection("'+this.col_name+'",function(err,col){col.find('+q+').toArray(function(err,docs){res.end(JSON.stringify(docs.length));client.close()})});',q_cb);
 	},
 	count:function(q_cb){
